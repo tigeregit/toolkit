@@ -6,21 +6,21 @@ services:
     container_name: sharelatex
     restart: always
     ports:
-      - "${OVERLEAF_LISTEN_IP:-0.0.0.0}:${OVERLEAF_PORT:-80}:80"
+      - "0.0.0.0:80:80" # 监听 IP 与端口，可自行修改
     environment:
-      OVERLEAF_MONGO_URL: ${MONGO_URL:-mongodb://mongo/sharelatex}
-      OVERLEAF_REDIS_HOST: ${REDIS_HOST:-redis}
-      REDIS_PORT: ${REDIS_PORT:-6379}
-      GIT_BRIDGE_ENABLED: ${GIT_BRIDGE_ENABLED:-false}
+      OVERLEAF_MONGO_URL: mongodb://mongo/sharelatex # Mongo 连接地址，可修改
+      OVERLEAF_REDIS_HOST: redis # Redis 主机名，可修改
+      REDIS_PORT: 6379 # Redis 端口，可修改
+      GIT_BRIDGE_ENABLED: false # 如需启用 Git Bridge，请改为 true
       GIT_BRIDGE_HOST: git-bridge
       GIT_BRIDGE_PORT: 8000
       V1_HISTORY_URL: http://sharelatex:3100/api
       OVERLEAF_SECURE_COOKIE: "true"
-      OVERLEAF_TRUSTED_PROXY_IPS: ${OVERLEAF_TRUSTED_PROXY_IPS:-loopback,172.16.0.0/12}
+      OVERLEAF_TRUSTED_PROXY_IPS: loopback,172.16.0.0/12 # 可信代理 IP，可修改
       OVERLEAF_BEHIND_PROXY: "true"
     volumes:
-      - ${OVERLEAF_DATA_PATH:-./data/sharelatex}:/var/lib/overleaf
-      - ${OVERLEAF_LOG_PATH:-./data/logs}:/var/log/overleaf
+      - ./data/sharelatex:/var/lib/overleaf # 数据存储路径，可修改
+      - ./data/logs:/var/log/overleaf # 日志路径，可修改
       # 如需使用 sibling containers，请取消下行注释
       # - /var/run/docker.sock:/var/run/docker.sock
     env_file:
@@ -41,12 +41,12 @@ services:
     stop_grace_period: 60s
 
   mongo:
-    image: ${MONGO_DOCKER_IMAGE:-mongo:4.0}
+    image: mongo:4.0 # Mongo 镜像，可修改
     container_name: mongo
     restart: always
-    command: ${MONGO_ARGS:--replSet overleaf}
+    command: --replSet overleaf # 启动参数，可修改
     volumes:
-      - ${MONGO_DATA_PATH:-./data/mongo}:/data/db
+      - ./data/mongo:/data/db # 数据目录，可修改
     expose:
       - 27017
     healthcheck:
@@ -56,40 +56,40 @@ services:
       retries: 5
 
   redis:
-    image: ${REDIS_IMAGE:-redis:5.0}
+    image: redis:5.0 # Redis 镜像，可修改
     container_name: redis
     restart: always
-    command: ${REDIS_COMMAND:--appendonly yes}
+    command: --appendonly yes # 启动参数，可修改
     volumes:
-      - ${REDIS_DATA_PATH:-./data/redis}:/data
+      - ./data/redis:/data # 数据目录，可修改
     expose:
       - 6379
 
   git-bridge:
-    image: ${GIT_BRIDGE_IMAGE:-overleaf/git-bridge:latest}
+    image: overleaf/git-bridge:latest # Git Bridge 镜像，可修改
     container_name: git-bridge
     restart: always
     volumes:
-      - ${GIT_BRIDGE_DATA_PATH:-./data/git-bridge}:/data/git-bridge
+      - ./data/git-bridge:/data/git-bridge # 数据目录，可修改
     environment:
-      GIT_BRIDGE_API_BASE_URL: ${GIT_BRIDGE_API_BASE_URL:-http://sharelatex:3000/api/v0/}
+      GIT_BRIDGE_API_BASE_URL: http://sharelatex:3000/api/v0/ # API 地址，可修改
       GIT_BRIDGE_OAUTH2_SERVER: http://sharelatex
       GIT_BRIDGE_POSTBACK_BASE_URL: http://git-bridge:8000
       GIT_BRIDGE_ROOT_DIR: /data/git-bridge
-      LOG_LEVEL: ${GIT_BRIDGE_LOG_LEVEL:-INFO}
+      LOG_LEVEL: INFO # 日志级别，可修改
     env_file:
       - ./config/variables.env
     expose:
       - 8000
 
   nginx:
-    image: ${NGINX_IMAGE:-nginx:1.28-alpine}
+    image: nginx:1.28-alpine # Nginx 镜像，可修改
     container_name: nginx
     restart: always
     ports:
-      - "${NGINX_TLS_LISTEN_IP:-0.0.0.0}:${TLS_PORT:-443}:443"
-      - "${NGINX_HTTP_LISTEN_IP:-127.0.1.1}:${NGINX_HTTP_PORT:-80}:80"
+      - "0.0.0.0:443:443" # TLS 监听 IP 与端口，可修改
+      - "127.0.1.1:80:80" # HTTP 监听 IP 与端口，可修改
     volumes:
-      - ${TLS_PRIVATE_KEY_PATH:-./certs/nginx_key.pem}:/certs/nginx_key.pem:ro
-      - ${TLS_CERTIFICATE_PATH:-./certs/nginx_certificate.pem}:/certs/nginx_certificate.pem:ro
-      - ${NGINX_CONFIG_PATH:-./config/nginx/nginx.conf}:/etc/nginx/nginx.conf:ro
+      - ./certs/nginx_key.pem:/certs/nginx_key.pem:ro # TLS 私钥路径，可修改
+      - ./certs/nginx_certificate.pem:/certs/nginx_certificate.pem:ro # TLS 证书路径，可修改
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro # Nginx 配置文件路径，可修改
